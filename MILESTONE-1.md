@@ -1,12 +1,44 @@
-#MILESTONE 1 (Deliverable #1)
-============================
+# MILESTONE 1 (Deliverable #1)
+==============================
 
 *1. Download and unpack Kafka then set the environment variable KAFKA_HOME to the directory of the unpacked location. The easiest way to start is to use Steps 1 and 2 in the “Apache Kafka Quickstart” guide.*
+
+
+
+- start kafka services
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/zookeeper-server-start.sh config/zookeeper.properties
+.
+.
+.
+
+
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-server-start.sh config/server.properties
+.
+.
+.
 
 ```
 
 
+- Injecting sample test events:
 
+```
+
+bin/kafka-console-producer.sh \
+  --topic quickstart-events \
+   --bootstrap-server localhost:9092
+
+```
+
+- Reading the events:
+
+```
+bin/kafka-console-consumer.sh \
+  --topic quickstart-events \
+  --from-beginning \
+  --bootstrap-server localhost:9092
 ```
 
 
@@ -131,6 +163,32 @@
 *3. Create a Kafka topic that will contain order received events, and verify it exists. The easiest way to do this is to use Step 3 in the “Apache Kafka Quickstart” guide.*
 
 (https://kafka.apache.org/quickstart)
+
+
+
+- Create a topic
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-topics.sh --create --topic order-received-events --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092             
+
+Error while executing topic command : Topic 'order-received-events' already exists.
+[2021-11-24 00:45:42,265] ERROR org.apache.kafka.common.errors.TopicExistsException: Topic 'order-received-events' already exists.
+ (kafka.admin.TopicCommand$)
+
+```
+
+- check topic status:
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-topics.sh \
+  --describe \
+  --topic order-received-events \
+  --bootstrap-server localhost:9092
+Topic: order-received-events    TopicId: owS20NjkSq6AcoxMg1MkKg PartitionCount: 1       ReplicationFactor: 1    Configs: segment.bytes=1073741824
+        Topic: order-received-events    Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % 
+
+```
 
 
 
