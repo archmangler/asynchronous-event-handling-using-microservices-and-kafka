@@ -432,9 +432,3 @@ Error while executing topic command : Topic 'order-error-events' already exists.
 (base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % 
 ```
 
-
-
-
-
-
-

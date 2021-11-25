@@ -4,6 +4,13 @@
 
 - This project demonstrates generation and asynchronous handling of events produced by microservices via a containerised and elastically scalable Kafka cluster.
 - The objective is to demonstrate the generation and parallel handling of high volumes of messages for load testing of transactional systems (e.g order matching platforms) in a cloud environment.
+- There is a requirement for:
+
+a) High Volume Low Latency Message Generation and 
+b) Accurate Test message Generation and 
+c) Point in time test message replay 
+d) Log collection and monitoring
+e) Metrics Tracking and analytics (dashboarding)
 
 ## Operating Principle
 
@@ -32,4 +39,3 @@ The design consists of the following components:
 ### Message Generator Service
 
 ### Message Consumer Service
-
