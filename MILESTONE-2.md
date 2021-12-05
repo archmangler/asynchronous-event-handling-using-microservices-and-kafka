@@ -1,5 +1,4 @@
-# Milestone 2
-=============
+# Milestone 2   
 
 *Create a new Order microservice in Go. Create an HTTP GET endpoint to check the microservice’s health. Test that the service works as expected by running the service and executing a call to the health endpoint. Ensure it responds accordingly.*
 
