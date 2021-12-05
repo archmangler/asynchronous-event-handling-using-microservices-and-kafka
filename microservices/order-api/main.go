@@ -12,20 +12,19 @@ import (
 	"time"
 )
 
-type Coaster struct {
-	Name         string `json:"name"`
-	Manufacturer string `json:"manufacturer"`
-	ID           string `json:"id"`
-	InPark       string `json:"inPark"`
-	Height       int    `json:"height"`
+type Order struct {
+      eventId         string `json:"eventId"`
+      eventName string `json:"eventName"`
+      eventTimestamp           string `json:"eventTimestamp"`
+      eventData       string `json:"eventData"`
 }
 
-type coasterHandlers struct {
+type orderHandlers struct {
 	sync.Mutex
-	store map[string]Coaster
+	store map[string]Order
 }
 
-func (h *coasterHandlers) coasters(w http.ResponseWriter, r *http.Request) {
+func (h *orderHandlers) orders(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		h.get(w, r)
@@ -40,18 +39,18 @@ func (h *coasterHandlers) coasters(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *coasterHandlers) get(w http.ResponseWriter, r *http.Request) {
-	coasters := make([]Coaster, len(h.store))
+func (h *orderHandlers) get(w http.ResponseWriter, r *http.Request) {
+	orders := make([]Order, len(h.store))
 
 	h.Lock()
 	i := 0
-	for _, coaster := range h.store {
-		coasters[i] = coaster
+	for _, order := range h.store {
+		orders[i] = order
 		i++
 	}
 	h.Unlock()
 
-	jsonBytes, err := json.Marshal(coasters)
+	jsonBytes, err := json.Marshal(orders)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -61,7 +60,7 @@ func (h *coasterHandlers) get(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-func (h *coasterHandlers) getRandomCoaster(w http.ResponseWriter, r *http.Request) {
+func (h *orderHandlers) getRandomOrder(w http.ResponseWriter, r *http.Request) {
 	ids := make([]string, len(h.store))
 	h.Lock()
 	i := 0
@@ -82,11 +81,11 @@ func (h *coasterHandlers) getRandomCoaster(w http.ResponseWriter, r *http.Reques
 		target = ids[rand.Intn(len(ids))]
 	}
 
-	w.Header().Add("location", fmt.Sprintf("/coasters/%s", target))
+	w.Header().Add("location", fmt.Sprintf("/orders/%s", target))
 	w.WriteHeader(http.StatusFound)
 }
 
-func (h *coasterHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
+func (h *orderHandlers) getOrder(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.String(), "/")
 	if len(parts) != 3 {
 		w.WriteHeader(http.StatusNotFound)
@@ -94,19 +93,19 @@ func (h *coasterHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if parts[2] == "random" {
-		h.getRandomCoaster(w, r)
+		h.getRandomOrder(w, r)
 		return
 	}
 
 	h.Lock()
-	coaster, ok := h.store[parts[2]]
+	order, ok := h.store[parts[2]]
 	h.Unlock()
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	jsonBytes, err := json.Marshal(coaster)
+	jsonBytes, err := json.Marshal(order)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -117,7 +116,7 @@ func (h *coasterHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-func (h *coasterHandlers) post(w http.ResponseWriter, r *http.Request) {
+func (h *orderHandlers) post(w http.ResponseWriter, r *http.Request) {
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -133,23 +132,23 @@ func (h *coasterHandlers) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var coaster Coaster
-	err = json.Unmarshal(bodyBytes, &coaster)
+	var order Order
+	err = json.Unmarshal(bodyBytes, &order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	coaster.ID = fmt.Sprintf("%d", time.Now().UnixNano())
+	order.ID = fmt.Sprintf("%d", time.Now().UnixNano())
 	h.Lock()
-	h.store[coaster.ID] = coaster
+	h.store[order.ID] = order
 	defer h.Unlock()
 }
 
-func newCoasterHandlers() *coasterHandlers {
-	return &coasterHandlers{
-		store: map[string]Coaster{},
+func newOrderHandlers() *orderHandlers {
+	return &orderHandlers{
+		store: map[string]Order{},
 	}
 
 }
@@ -179,14 +178,17 @@ func (a adminPortal) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	admin := newAdminPortal()
-	coasterHandlers := newCoasterHandlers()
-	http.HandleFunc("/coasters", coasterHandlers.coasters)
-	http.HandleFunc("/coasters/", coasterHandlers.getCoaster)
-	http.HandleFunc("/admin", admin.handler)
+	//admin := newAdminPortal()
+
+	orderHandlers := newOrderHandlers()
+	http.HandleFunc("/orders", orderHandlers.orders)
+
+	http.HandleFunc("/orders/", orderHandlers.getOrder)
+	//http.HandleFunc("/admin", admin.handler)
+
 	err := http.ListenAndServe(":8080", nil)
+
 	if err != nil {
 		panic(err)
 	}
 }
-

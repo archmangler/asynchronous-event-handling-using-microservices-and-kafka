@@ -12,20 +12,27 @@ import (
 	"time"
 )
 
-type Coaster struct {
-	Name         string `json:Name`
-	Manufacturer string `json:Manufacturer`
-	ID           string `json:id`
-	InPark       string `json: inPark`
-	Height       int    `json: Height`
+/*
+curl -v http://127.0.0.1:8080/coasters \
+  -H 'Content-Type: application/json' \
+  -X POST \
+  -d '{ "eventName":"newOrder", "productCode":"00000001", "productQuantity":"2", "customerCode":"101010022"}'
+*/
+type Order struct {
+	eventName       string `json:eventName`
+	eventTimeStamp  string `json:eventTimeStamp`
+	eventID         string `json:eventID`
+	productCode     string `json:productCode`
+	productQuantity string `json:productQuantity`
+	customerCode    string `json:productCode`
 }
 
-type coastersHandlers struct {
+type ordersHandlers struct {
 	sync.Mutex
-	store map[string]Coaster
+	store map[string]Order
 }
 
-func (h *coastersHandlers) coasters(w http.ResponseWriter, r *http.Request) {
+func (h *ordersHandlers) orders(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
@@ -41,7 +48,7 @@ func (h *coastersHandlers) coasters(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *coastersHandlers) post(w http.ResponseWriter, r *http.Request) {
+func (h *ordersHandlers) post(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	fmt.Println("debug> accepting posted data!!")
@@ -60,23 +67,24 @@ func (h *coastersHandlers) post(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("need content type application/json but got '%s'", ct)))
 	}
 
-	var coaster Coaster
-	err = json.Unmarshal(bodyBytes, &coaster)
+	var order Order
+
+	err = json.Unmarshal(bodyBytes, &order)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 	}
 
-	coaster.ID = fmt.Sprintf("%d", time.Now().UnixNano())
+	order.eventID = fmt.Sprintf("%d", time.Now().UnixNano())
 
 	h.Lock()
-	h.store[coaster.ID] = coaster
+	h.store[order.eventID] = order
 	defer h.Unlock()
 	fmt.Println("debug> accepting posted data!!")
 }
 
-func (h *coastersHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
+func (h *ordersHandlers) getOrder(w http.ResponseWriter, r *http.Request) {
 
 	parts := strings.Split(r.URL.String(), "/")
 
@@ -86,12 +94,14 @@ func (h *coastersHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if parts[2] == "random" {
-		h.getRandomCoaster(w, r)
+		h.getRandomOrder(w, r)
 		return
 	}
 
 	h.Lock()
-	coaster, ok := h.store[parts[2]]
+
+	order, ok := h.store[parts[2]]
+
 	h.Unlock()
 
 	if !ok {
@@ -99,7 +109,7 @@ func (h *coastersHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(coaster)
+	jsonBytes, err := json.Marshal(order)
 
 	if err != nil {
 		//TD
@@ -114,19 +124,20 @@ func (h *coastersHandlers) getCoaster(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *coastersHandlers) get(w http.ResponseWriter, r *http.Request) {
+func (h *ordersHandlers) get(w http.ResponseWriter, r *http.Request) {
 
-	coasters := make([]Coaster, len(h.store))
+	orders := make([]Order, len(h.store))
 
 	h.Lock()
 	i := 0
-	for _, coaster := range h.store {
-		coasters[i] = coaster
+	for _, order := range h.store {
+		orders[i] = order
 		i++
 	}
+
 	h.Unlock()
 
-	jsonBytes, err := json.Marshal(coasters)
+	jsonBytes, err := json.Marshal(orders)
 
 	if err != nil {
 		//TD
@@ -169,14 +180,14 @@ func (a adminPortal) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 //Constructor function
-func newCoasterHandlers() *coastersHandlers {
-	return &coastersHandlers{
+func newOrderHandlers() *ordersHandlers {
+	return &ordersHandlers{
 
-		store: map[string]Coaster{},
+		store: map[string]Order{},
 	}
 }
 
-func (h *coastersHandlers) getRandomCoaster(w http.ResponseWriter, r *http.Request) {
+func (h *ordersHandlers) getRandomOrder(w http.ResponseWriter, r *http.Request) {
 
 	ids := make([]string, len(h.store))
 
@@ -207,17 +218,19 @@ func (h *coastersHandlers) getRandomCoaster(w http.ResponseWriter, r *http.Reque
 
 	fmt.Println(target)
 
-	w.Header().Add("location", fmt.Sprintf("/coasters/%s", target))
+	w.Header().Add("location", fmt.Sprintf("/orders/%s", target))
 	w.WriteHeader(http.StatusFound)
 }
 
 func main() {
 
-	coasterHandlers := newCoasterHandlers()
+	orderHandlers := newOrderHandlers()
+
 	admin := newAdminPortal()
 
-	http.HandleFunc("/coasters", coasterHandlers.coasters)
-	http.HandleFunc("/coasters/", coasterHandlers.getCoaster)
+	http.HandleFunc("/orders", orderHandlers.orders)
+
+	http.HandleFunc("/orders/", orderHandlers.getOrder)
 	http.HandleFunc("/admin", admin.handler)
 
 	err := http.ListenAndServe(":8080", nil)
