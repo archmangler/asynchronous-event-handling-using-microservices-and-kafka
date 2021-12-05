@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -95,7 +94,15 @@ func (h *orderHandlers) get(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func (h *orderHandlers) getServiceHealth(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Running health check ...")
+	h.getRandomOrder(w, r)
+}
+
 func (h *orderHandlers) getRandomOrder(w http.ResponseWriter, r *http.Request) {
+
+	fmt.Println("Getting a random order")
+
 	ids := make([]string, len(h.store))
 	h.Lock()
 	i := 0
@@ -128,7 +135,14 @@ func (h *orderHandlers) getOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if parts[2] == "random" {
+
 		h.getRandomOrder(w, r)
+		return
+	}
+
+	//Health service will return a random, but valid order
+	if parts[2] == "health" {
+		h.getServiceHealth(w, r)
 		return
 	}
 
@@ -272,6 +286,7 @@ func newOrderHandlers() *orderHandlers {
 
 }
 
+/*
 type adminPortal struct {
 	password string
 }
@@ -295,8 +310,11 @@ func (a adminPortal) handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte("<html><h1>Super secret admin portal</h1></html>"))
 }
+*/
 
 func main() {
+
+	//Not needed. Stands as example
 	//admin := newAdminPortal()
 
 	orderHandlers := newOrderHandlers()
@@ -305,7 +323,8 @@ func main() {
 
 	http.HandleFunc("/orders/", orderHandlers.getOrder)
 
-	//        http.HandleFunc("/admin", admin.handler)
+	//Not needed. Stands as example
+	//http.HandleFunc("/admin", admin.handler)
 
 	err := http.ListenAndServe(":8080", nil)
 
