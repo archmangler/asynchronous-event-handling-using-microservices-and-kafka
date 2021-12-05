@@ -1,8 +1,7 @@
 # Milestone #2
 =============
 
-
-# *Create a new Order microservice in Go. Create an HTTP GET endpoint to check the microservice’s health. Test that the service works as expected by running the service and executing a call to the health endpoint. Ensure it responds accordingly.*
+*Create a new Order microservice in Go. Create an HTTP GET endpoint to check the microservice’s health. Test that the service works as expected by running the service and executing a call to the health endpoint. Ensure it responds accordingly.*
 
 ```
 package main
@@ -225,7 +224,7 @@ func main() {
 
 ```
 
-# Create a function that publishes an event to a topic in Kafka. Test that this function works correctly by creating a main program in Go that will use this function to publish an event to the OrderReceived topic. Verify that it was received by using the appropriate Kafka command-line operation.*
+*Create a function that publishes an event to a topic in Kafka. Test that this function works correctly by creating a main program in Go that will use this function to publish an event to the OrderReceived topic. Verify that it was received by using the appropriate Kafka command-line operation.*
 
 
 ```
@@ -288,7 +287,7 @@ Send a message:
 
 ```
 
-Running the microservice:
+*Running the microservice*
 
 ```
 (base) welcome@Traianos-MacBook-Pro order-api % go build orders.go
@@ -299,7 +298,7 @@ wrote: [123 34 78 97 109 101 34 58 34 110 101 119 79 114 100 101 114 34 44 32 34
 ```
 
 
-Read the topic (with cli consumer)
+*Read the topic (with cli consumer)*
 
 
 ```
