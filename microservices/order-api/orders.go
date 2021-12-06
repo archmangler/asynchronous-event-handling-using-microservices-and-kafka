@@ -261,7 +261,6 @@ func produce(message []byte, ctx context.Context) {
 	// the message gets published on
 	err := w.WriteMessages(ctx, kafka.Message{
 		Key: []byte(strconv.Itoa(i)),
-
 		// create an arbitrary message payload for the value
 		Value: []byte(message),
 	})
@@ -272,11 +271,9 @@ func produce(message []byte, ctx context.Context) {
 
 	// log a confirmation once the message is written
 	fmt.Println("wrote:", message)
-	i++
 
 	// sleep for a second
 	time.Sleep(time.Second)
-	//}
 }
 
 func newOrderHandlers() *orderHandlers {

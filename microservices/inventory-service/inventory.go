@@ -22,7 +22,7 @@ var ctx = context.Background()
 // the topic and broker address are initialized as constants
 const (
 	topic1         = "deadletter-queue"
-	topic2         = "order-confirmed"
+	topic2         = "orderconfirmed-events"
 	topic0         = "order-received-events"
 	broker1Address = "localhost:9092"
 	broker2Address = "localhost:9092"
@@ -81,7 +81,7 @@ func (a healthPortal) handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("<html><h1>Service Health Portal</h1></html>"))
 }
 
-func consume(ctx context.Context, topic string) {
+func consume(ctx context.Context, topic string) (message string) {
 	// initialize a new reader with the brokers and topic
 	// the groupID identifies the consumer and prevents
 	// it from receiving duplicate messages
@@ -93,14 +93,23 @@ func consume(ctx context.Context, topic string) {
 		Topic:   topic,
 		GroupID: "my-group",
 	})
+
 	for {
+
 		// the `ReadMessage` method blocks until we receive the next event
 		msg, err := r.ReadMessage(ctx)
+
 		if err != nil {
 			panic("could not read message " + err.Error())
 		}
+
 		// after receiving the message, log its value
 		fmt.Println("received: ", string(msg.Value))
+		message = string(msg.Value)
+
+		//Hereafter we consume from the named topic ...
+		produce(message, ctx, topic2)
+
 	}
 }
 
@@ -119,10 +128,9 @@ func main() {
 	}()
 
 	//test message to kick off the stream
-	message := "Mary had a little lamb ..."
-
+	//message := "Mary had a little lamb ..."
 	//produce a test message
-	produce(message, ctx, topic0)
+	//produce(message, ctx, topic0)
 
 	//consume incoming order received events from the order received topic/"queue"
 	consume(ctx, topic0)
