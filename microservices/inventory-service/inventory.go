@@ -7,6 +7,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -21,13 +23,22 @@ var ctx = context.Background()
 
 // the topic and broker address are initialized as constants
 const (
-	topic1         = "deadletter-queue"
+	topic1         = "deadletter-events"
 	topic2         = "orderconfirmed-events"
 	topic0         = "order-received-events"
 	broker1Address = "localhost:9092"
 	broker2Address = "localhost:9092"
 	broker3Address = "localhost:9092"
 )
+
+//DRY - define this in a main library somewhere ...
+type Order struct {
+	Name      string `json:"name"`
+	ID        string `json:"id"`
+	Time      string `json:"time"`
+	Data      string `json:"data"`
+	Eventname string `json:"eventname"`
+}
 
 //Publish the message to kafka DeadLetter or other topics
 //call: newOrderHandlers
@@ -107,10 +118,57 @@ func consume(ctx context.Context, topic string) (message string) {
 		fmt.Println("received: ", string(msg.Value))
 		message = string(msg.Value)
 
-		//Hereafter we consume from the named topic ...
-		produce(message, ctx, topic2)
+		fmt.Println("DEBUG> ", message, "<DEBUG")
+
+		err = data_check(message)
+
+		if err != nil {
+
+			//produce to deadletter topic
+			produce(message, ctx, topic1)
+
+		} else {
+
+			//If all went well ...
+			produce(message, ctx, topic2)
+
+		}
 
 	}
+}
+
+/*
+
+A dummy error checking routine
+
+*/
+
+func data_check(message string) (err error) {
+
+	data := Order{}
+
+	err = json.Unmarshal([]byte(message), &data)
+
+	if err != nil {
+		fmt.Println("incorrect message format (not readable json)" + err.Error())
+	}
+
+	if len(data.Name) == 0 {
+		err = errors.New("incorrect message format, Name field empty")
+		return err
+	}
+
+	if len(data.ID) == 0 {
+		err = errors.New("incorrect message format, ID field empty")
+		return err
+	}
+
+	if len(data.Data) == 0 {
+		err = errors.New("incorrect message format, Data field empty")
+		return err
+	}
+
+	return nil
 }
 
 func main() {
