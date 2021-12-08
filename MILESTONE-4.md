@@ -3,6 +3,9 @@ Milestone #4
 
 #Create a new Inventory consumer in Go.
 
+(See microservice in microservices/inventory-service/inventory.go)
+
+
 *Create a long-lived subscription to the OrderReceived topic in Kafka.*
 
 
@@ -335,6 +338,10 @@ wrote: {"Name":"newOrder", "ID":"78923","Time":"223232113122","Data":"", "Eventn
 {"Name":"newOrder", "ID":"78923","Time":"223232113122","Data":"", "Eventname":"newOrder"}
 
 ```
+
+
+
+
 
 
 
