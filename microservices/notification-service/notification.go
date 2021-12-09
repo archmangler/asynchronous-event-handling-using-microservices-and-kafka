@@ -35,7 +35,7 @@ const (
 /*
 Sample:
 "namespace": "org.industrial",
-"type": "record",
+"etype": "record",
 "name": "OrderEmailNotification",
 "fields": [
 	{"name": "order_id",  "type": "long",
@@ -53,11 +53,13 @@ Sample:
 */
 
 //DRY - define this in a main library somewhere ...
+//{   "namespace": "org.industrial",   "etype": "record",   "name": "OrderEmailNotification",   "fields": "random stuff" }
+
 type Notification struct {
-	namespace     string `json:"namespace"`
-	type        string `json:"type"`
+	namespace string `json:"namespace"`
+	etype     string `json:"type"`
 	name      string `json:"name"`
-	fields      string `json:"fields"`
+	fields    string `json:"fields"`
 }
 
 //Publish the message to kafka DeadLetter or other topics
@@ -145,6 +147,7 @@ func consume(ctx context.Context, topic string) (message string) {
 		if err != nil {
 
 			//produce to deadletter topic
+			fmt.Println("Error with notification format: " + err.Error() + message)
 			produce(message, ctx, topic1)
 
 		} else {
@@ -153,7 +156,7 @@ func consume(ctx context.Context, topic string) (message string) {
 			//produce(message, ctx, topic2)
 
 			//Simply print this out, but ususally send it to a mailer program on a submission queue
-			fmt.Println("Notification Registered : ",message)
+			fmt.Println("Notification Registered : ", message)
 		}
 
 	}
@@ -170,11 +173,12 @@ func data_check(message string) (err error) {
 	err = json.Unmarshal([]byte(message), &data)
 
 	if err != nil {
-		fmt.Println("incorrect message format (not readable json)" + err.Error())
+		fmt.Println("incorrect message format (not readable json)" + err.Error() + message)
 	}
 
 	if len(data.namespace) == 0 {
-		err = errors.New("incorrect message format, namespace field empty")
+		fmt.Println("Namespace field value: ", data.namespace, " message: ", message)
+		err = errors.New("incorrect message format, name field empty")
 		return err
 	}
 
@@ -207,4 +211,3 @@ func main() {
 	consume(ctx, topic0)
 
 }
-

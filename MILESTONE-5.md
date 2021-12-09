@@ -23,4 +23,121 @@
 
 ## Deliverable
 
-*The deliverable for this milestone is three event consumers: Notification, which will be subscribed to the Notification topic in Kafka and can publish error events to the DeadLetterQueue topic in Kafka Warehouse, which will be subscribed to the OrderConfirmed topic in Kafka and can publish events to the Notification topic as well as publish error events to the DeadLetterQueue topic in Kafka Shipper, which will be subscribed to the OrderPickedAndPacked topic in Kafka and can publish events to the Notification topic as well as publish error events to the DeadLetterQueue topic in Kafka*
+- *Notification, which will be subscribed to the Notification topic in Kafka and can publish error events to the DeadLetterQueue topic in Kafka*
+
+- *Warehouse, which will be subscribed to the OrderConfirmed topic in Kafka and can publish events to the Notification topic as well as publish error events to the DeadLetterQueue topic in Kafka*
+
+- *Shipper, which will be subscribed to the OrderPickedAndPacked topic in Kafka and can publish events to the Notification topic as well as publish error events to the DeadLetterQueue topic in Kafka*
+
+[] Check all relevant topics are there:
+
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+__consumer_offsets
+
+->deadletter-events
+->enotification-events
+
+order-error-events
+order-received-events
+
+->orderconfirmed-events
+->orderpicked-events
+
+quickstart-events
+```
+
+[] Create 3 microservice  copies based on template
+
+```
+(base) welcome@Traianos-MacBook-Pro microservices % ls -l
+total 0
+.
+.
+.
+drwxr-xr-x  4 welcome  staff  128 Dec  9 22:50 notification-service
+drwxr-xr-x  3 welcome  staff   96 Dec  9 22:36 shipper-service
+drwxr-xr-x  3 welcome  staff   96 Dec  9 22:36 warehouse-service
+```
+
+[] Customise each to task
+
+[] Test message consumption and production
+
+- sample notification:
+
+```
+{   
+ "namespace": "org.industrial",
+ "type": "record",
+ "name": "OrderEmailNotification",
+ "fields": [
+     {"name": "order_id",  "type": "long",
+       "doc":"The Universally unique id that identifies the order"},
+     {"name": "time", "type": "long",
+       "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"},
+     {"name": "event_id",  "type": "long",
+     "doc":"The Universally unique event id that identifies this event"},
+     {"name": "email_type", "type": "long",
+        "type":{"type":"enum",
+             "name":"email_notification_type",
+             "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]},
+       "doc":"Type of the email notification to be sent"}
+ ]
+}
+```
+
+[] Test error event to deadletter topic
+
+- Notifications:
+
+Produce:
+
+```
+
+
+```
+
+Received by notification service and registered as an error:
+
+
+```
+(base) welcome@Traianos-MacBook-Pro notification-service % ./notification 
+debug> consuming from topic  enotification-events
+received:  
+DEBUG>   <DEBUG
+incorrect message format (not readable json)unexpected end of JSON input
+wrote:   to topic  deadletter-events
+received:  
+DEBUG>   <DEBUG
+incorrect message format (not readable json)unexpected end of JSON input
+wrote:   to topic  deadletter-events
+received:  { "namespace": "org.industrial", "etype": "record", "name": "OrderEmailNotification", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "time", "type": "long", "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "email_type", "type": "long", "type":{"type":"enum", "name":"email_notification_type", "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]}, "doc":"Type of the email notification to be sent"} ] }
+DEBUG>  { "namespace": "org.industrial", "etype": "record", "name": "OrderEmailNotification", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "time", "type": "long", "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "email_type", "type": "long", "type":{"type":"enum", "name":"email_notification_type", "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]}, "doc":"Type of the email notification to be sent"} ] } <DEBUG
+wrote: { "namespace": "org.industrial", "etype": "record", "name": "OrderEmailNotification", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "time", "type": "long", "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "email_type", "type": "long", "type":{"type":"enum", "name":"email_notification_type", "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]}, "doc":"Type of the email notification to be sent"} ] }  to topic  deadletter-events
+received:  
+DEBUG>   <DEBUG
+incorrect message format (not readable json)unexpected end of JSON input
+wrote:   to topic  deadletter-events
+```
+
+Produced to the deadletter queue:
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 %  bin/kafka-console-consumer.sh \                            
+  --topic enotification-events \                                 
+  --from-beginning \
+  --bootstrap-server localhost:9092
+
+{ "namespace": "org.industrial", "etype": "record", "name": "OrderEmailNotification", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "time", "type": "long", "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "email_type", "type": "long", "type":{"type":"enum", "name":"email_notification_type", "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]}, "doc":"Type of the email notification to be sent"} ] }
+
+```
+
+[] Validate end-to-end flow of messages (happy case)
+
+
+
+
+
+
