@@ -1,6 +1,8 @@
 package main
 
-//Inventory service for processing inbound received orders
+//Notification microservice consumes notification events from topic `enotification-events`, checks for errors and if errors
+//are found in the notification, log them to the deadletter queue.
+//
 //Needed:
 //go get -u github.com/segmentio/kafka-go
 //
@@ -24,20 +26,38 @@ var ctx = context.Background()
 // the topic and broker address are initialized as constants
 const (
 	topic1         = "deadletter-events"
-	topic2         = "orderconfirmed-events"
-	topic0         = "order-received-events"
+	topic0         = "enotification-events"
 	broker1Address = "localhost:9092"
 	broker2Address = "localhost:9092"
 	broker3Address = "localhost:9092"
 )
 
+/*
+Sample:
+"namespace": "org.industrial",
+"type": "record",
+"name": "OrderEmailNotification",
+"fields": [
+	{"name": "order_id",  "type": "long",
+	  "doc":"The Universally unique id that identifies the order"},
+	{"name": "time", "type": "long",
+	  "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"},
+	{"name": "event_id",  "type": "long",
+	"doc":"The Universally unique event id that identifies this event"},
+	{"name": "email_type", "type": "long",
+	   "type":{"type":"enum",
+			"name":"email_notification_type",
+			"symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]},
+	  "doc":"Type of the email notification to be sent"}
+]
+*/
+
 //DRY - define this in a main library somewhere ...
-type Order struct {
-	Name      string `json:"name"`
-	ID        string `json:"id"`
-	Time      string `json:"time"`
-	Data      string `json:"data"`
-	Eventname string `json:"eventname"`
+type Notification struct {
+	namespace     string `json:"namespace"`
+	type        string `json:"type"`
+	name      string `json:"name"`
+	fields      string `json:"fields"`
 }
 
 //Publish the message to kafka DeadLetter or other topics
@@ -130,22 +150,22 @@ func consume(ctx context.Context, topic string) (message string) {
 		} else {
 
 			//If all went well ...
-			produce(message, ctx, topic2)
+			//produce(message, ctx, topic2)
 
+			//Simply print this out, but ususally send it to a mailer program on a submission queue
+			fmt.Println("Notification Registered : ",message)
 		}
 
 	}
 }
 
 /*
-
 A dummy error checking routine
-
 */
 
 func data_check(message string) (err error) {
 
-	data := Order{}
+	data := Notification{}
 
 	err = json.Unmarshal([]byte(message), &data)
 
@@ -153,18 +173,8 @@ func data_check(message string) (err error) {
 		fmt.Println("incorrect message format (not readable json)" + err.Error())
 	}
 
-	if len(data.Name) == 0 {
-		err = errors.New("incorrect message format, Name field empty")
-		return err
-	}
-
-	if len(data.ID) == 0 {
-		err = errors.New("incorrect message format, ID field empty")
-		return err
-	}
-
-	if len(data.Data) == 0 {
-		err = errors.New("incorrect message format, Data field empty")
+	if len(data.namespace) == 0 {
+		err = errors.New("incorrect message format, namespace field empty")
 		return err
 	}
 
@@ -173,12 +183,15 @@ func data_check(message string) (err error) {
 
 func main() {
 
+	//The microservice health portal ... note: this scheme doesn't scale per microservice
+	//you'd need to have a separate management microservice communicating with n child microservices
+	//via a lightweight management port to each new dynamically created child service ...good use case for K8s.
 	//because this blocks , we run in a go-routine
 	go func() {
 
 		health := newAdminPortal()
 		http.HandleFunc("/health", health.handler)
-		err := http.ListenAndServe(":8081", nil) //port will have to be dynamically allocated for scalability.
+		err := http.ListenAndServe(":8082", nil) //port will have to be dynamically allocated for scalability.
 		if err != nil {
 			panic(err)
 		}
@@ -194,3 +207,4 @@ func main() {
 	consume(ctx, topic0)
 
 }
+
