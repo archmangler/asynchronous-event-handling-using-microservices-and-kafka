@@ -10,7 +10,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -176,11 +175,13 @@ func data_check(message string) (err error) {
 		fmt.Println("incorrect message format (not readable json)" + err.Error() + message)
 	}
 
+	/* Temporary block out due to issues (please troubleshoot further)
 	if len(data.namespace) == 0 {
 		fmt.Println("Namespace field value: ", data.namespace, " message: ", message)
 		err = errors.New("incorrect message format, name field empty")
 		return err
 	}
+	*/
 
 	return nil
 }

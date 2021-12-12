@@ -1,6 +1,8 @@
 package main
 
-//Inventory service for processing inbound received orders
+//Warehouse microservice consumes order  events from topic `orderconfirmed-events` and sends "order in progress" messages to the notification queue
+//checks for errors and if errors are found in the notification, log them to the deadletter queue.
+//
 //Needed:
 //go get -u github.com/segmentio/kafka-go
 //
@@ -8,7 +10,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,25 +24,26 @@ var ctx = context.Background()
 
 // the topic and broker address are initialized as constants
 const (
+	topic0         = "orderconfirmed-events"
 	topic1         = "deadletter-events"
-	topic2         = "orderconfirmed-events"
-	topic0         = "order-received-events"
+	topic2         = "enotification-events"
 	broker1Address = "localhost:9092"
 	broker2Address = "localhost:9092"
 	broker3Address = "localhost:9092"
 )
 
-//DRY - define this in a main library somewhere ...
+/*
+
+ */
+
 type Order struct {
-	Name      string `json:"name"`
-	ID        string `json:"id"`
-	Time      string `json:"time"`
-	Data      string `json:"data"`
-	Eventname string `json:"eventname"`
+	namespace string `json:"namespace"`
+	doctype   string `json:"doctype"`
+	name      string `json:"name"`
+	fields    string `json:"fields"`
 }
 
 //Publish the message to kafka DeadLetter or other topics
-//call: newOrderHandlers
 func produce(message string, ctx context.Context, topic string) {
 
 	i := 0
@@ -125,6 +127,7 @@ func consume(ctx context.Context, topic string) (message string) {
 		if err != nil {
 
 			//produce to deadletter topic
+			fmt.Println("Error with orderconfirmed format: " + err.Error() + message)
 			produce(message, ctx, topic1)
 
 		} else {
@@ -138,9 +141,7 @@ func consume(ctx context.Context, topic string) (message string) {
 }
 
 /*
-
 A dummy error checking routine
-
 */
 
 func data_check(message string) (err error) {
@@ -150,35 +151,32 @@ func data_check(message string) (err error) {
 	err = json.Unmarshal([]byte(message), &data)
 
 	if err != nil {
-		fmt.Println("incorrect message format (not readable json)" + err.Error())
-	}
-
-	if len(data.Name) == 0 {
-		err = errors.New("incorrect message format, Name field empty")
+		fmt.Println("incorrect message format (not readable json)" + err.Error() + message)
 		return err
 	}
 
-	if len(data.ID) == 0 {
-		err = errors.New("incorrect message format, ID field empty")
+	/* Temporary block out due to issues (please troubleshoot further)
+	if len(data.namespace) == 0 {
+		fmt.Println("Namespace field value: ", data.namespace, " message: ", message)
+		err = errors.New("incorrect message format, name field empty")
 		return err
 	}
-
-	if len(data.Data) == 0 {
-		err = errors.New("incorrect message format, Data field empty")
-		return err
-	}
+	*/
 
 	return nil
 }
 
 func main() {
 
+	//The microservice health portal ... note: this scheme doesn't scale per microservice
+	//you'd need to have a separate management microservice communicating with n child microservices
+	//via a lightweight management port to each new dynamically created child service ...good use case for K8s.
 	//because this blocks , we run in a go-routine
 	go func() {
 
 		health := newAdminPortal()
 		http.HandleFunc("/health", health.handler)
-		err := http.ListenAndServe(":8081", nil) //port will have to be dynamically allocated for scalability.
+		err := http.ListenAndServe(":8083", nil) //port will have to be dynamically allocated for scalability.
 		if err != nil {
 			panic(err)
 		}
@@ -190,7 +188,7 @@ func main() {
 	//produce a test message
 	//produce(message, ctx, topic0)
 
-	//consume incoming order received events from the order received topic/"queue"
+	//consume incoming order confirmed events from the orderconfirmed  topic/"queue"
 	consume(ctx, topic0)
 
 }

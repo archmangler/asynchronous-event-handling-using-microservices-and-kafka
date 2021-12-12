@@ -48,7 +48,7 @@ order-received-events
 quickstart-events
 ```
 
-[] Create 3 microservice  copies based on template
+[p] Create 3 microservice  copies based on template
 
 ```
 (base) welcome@Traianos-MacBook-Pro microservices % ls -l
@@ -61,9 +61,12 @@ drwxr-xr-x  3 welcome  staff   96 Dec  9 22:36 shipper-service
 drwxr-xr-x  3 welcome  staff   96 Dec  9 22:36 warehouse-service
 ```
 
-[] Customise each to task
+[p] Customise each go template code to microservice task
+ [x] notification service
+ [x] warehouse-service
+ [p] shipper-service
 
-[] Test message consumption and production
+[x] Test message consumption and production
 
 - sample notification:
 
@@ -88,18 +91,24 @@ drwxr-xr-x  3 welcome  staff   96 Dec  9 22:36 warehouse-service
 }
 ```
 
-[] Test error event to deadletter topic
+[x] Test error event to deadletter topic
 
 - Notifications:
 
 Produce:
 
 ```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-console-producer.sh \
+  --topic enotification-events \
+   --bootstrap-server localhost:9092
+>[{ "namespace": "org.industrial",   "etype": "record",   "name": "OrderEmailNotification","fields": "random stuff" }]
+>{ "namespace": "org.industrial", "etype": "record", "name": "OrderEmailNotification", "fields": [  {"name": "order_id", "type": "long",   "doc":"The Universally unique id that identifies the order"},  {"name": "time", "type": "long",   "doc":"Time the order alert request was generated as UTC milliseconds from thee epoch"},  {"name": "event_id", "type": "long",  "doc":"The Universally unique event id that identifies this event"},  {"name": "email_type", "type": "long",   "type":{"type":"enum",    "name":"email_notification_type",    "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped"," "OrderDelivered"]},   "doc":"Type of the email notification to be sent"} ] } 
+>
 
 
 ```
 
-Received by notification service and registered as an error:
+[x] Received by notification service and registered as an error:
 
 
 ```
@@ -122,7 +131,7 @@ incorrect message format (not readable json)unexpected end of JSON input
 wrote:   to topic  deadletter-events
 ```
 
-Produced to the deadletter queue:
+[x] Produced to the deadletter queue:
 
 ```
 (base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 %  bin/kafka-console-consumer.sh \                            
@@ -134,7 +143,222 @@ Produced to the deadletter queue:
 
 ```
 
-[] Validate end-to-end flow of messages (happy case)
+[x] Validate end-to-end flow of messages (happy case)
+
+
+Correctly formatted message successfully produced to the notification queue:
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 %  bin/kafka-console-consumer.sh \
+  --topic enotification-events \
+  --from-beginning \
+  --bootstrap-server localhost:9092
+
+        { "namespace": "org.industrial", "etype": "record", "name": "OrderEmailNotification", "fields": [  {"name": "order_id", "type": "long",   "doc":"The Universally unique id that identifies the order"},  {"name": "time", "type": "long",   "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"},  {"name": "event_id", "type": "long",  "doc":"The Universally unique event id that identifies this event"},  {"name": "email_type", "type": "long",   "type":{"type":"enum",    "name":"email_notification_type",    "symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]},   "doc":"Type of the email notification to be sent"} ] } 
+
+```
+
+
+- Warehouse Service
+
+[x] Create basic warehouse microservice based on template
+[x] Define the event format
+[x] Consume from orderConfirmed queue ("orderconfirmed-events")
+[x] Publish errors to the DeadletterQueue topic ("deadletter-events")
+[x] Publish a notification to the the notification queue that "order is being fulfilled" ("enotification-events") 
+[x] Test end to end for error case and happy case
+
+*Event Format:*
+
+
+```
+{ "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
+```
+
+
+```
+{
+  "namespace": "org.industrial",
+  "doctype": "record",
+  "name": "OrderPicked",
+  "fields": [
+    {
+      "name": "order_id",
+      "type": "long",
+      "doc": "The Universally unique id that identifies the order"
+    },
+    {
+      "name": "event_id",
+      "type": "long",
+      "doc": "The Universally unique event id that identifies this event"
+    },
+    {
+      "name": "time",
+      "type": "long",
+      "doc": "Time the order was confirmed as UTC milliseconds from the epoch"
+    }
+  ]
+}
+```
+*Produce Test Message*
+
+```
+
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-console-producer.sh \
+  --topic orderconfirmed-events \                                                                                                                                                                                                                                                                                       
+   --bootstrap-server localhost:9092
+
+>{ "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
+```
+
+*Confirm event is consumed from orderconfirmed-events topic*
+
+
+```
+
+(base) welcome@Traianos-MacBook-Pro warehouse-service % ./warehouse 
+
+received:  { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
+DEBUG>  { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] } <DEBUG
+wrote: { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }  to topic  enotification-events
+
+```
+
+*Check event is logged in the notifications topic*
+
+
+```
+(base) welcome@Traianos-MacBook-Pro warehouse-service % ./warehouse
+
+debug> consuming from topic  orderconfirmed-events
+received:  { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
+
+wrote: { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }  to topic  enotification-events
+
+```
+
+*Checking the notifications queue:*
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 %  bin/kafka-console-consumer.sh \
+  --topic enotification-events \
+  --from-beginning \
+  --bootstrap-server localhost:9092
+
+
+{ "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
+
+```
+
+*Produce broken json event message and test for error produce to deadletter*
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-console-producer.sh \
+ --topic orderconfirmed-events \                                                      
+ --bootstrap-server localhost:9092
+
+>{ "namespace": org.industrial", "doctype": "record", "name": "OrderPicked", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] } 
+```
+
+*connfirm warehouse service consumes it*
+
+```
+(base) welcome@Traianos-MacBook-Pro warehouse-service % ./warehouse 
+
+debug> consuming from topic  orderconfirmed-events
+received:  { "namespace": org.industrial", "doctype": "record", "name": "OrderPicked", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] } 
+
+DEBUG>  { "namespace": org.industrial", "doctype": "record", "name": "OrderPicked", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }  <DEBUG
+incorrect message format (not readable json)invalid character 'o' looking for beginning of value{ "namespace": org.industrial", "doctype": "record", "name": "OrderPicked", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] } 
+
+Error with orderconfirmed format: invalid character 'o' looking for beginning of value{ "namespace": org.industrial", "doctype": "record", "name": "OrderPicked", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] } 
+
+wrote: { "namespace": org.industrial", "doctype": "record", "name": "OrderPicked", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }   to topic  deadletter-events
+```
+
+*Confirm error result goes to deadletter queue*
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 %  bin/kafka-console-consumer.sh \                                                       
+  --topic deadletter-events \
+  --from-beginning \
+  --bootstrap-server localhost:9092
+```
+
+- Shipper Service
+
+[x] Create basic Shipper microservice based on template
+[x] Define the shipper event format
+[x] Consume from OrderPickedAndPacked  queue ("orderpicked-events")
+[p] Publish errors to the DeadletterQueue topic ("deadletter-events")
+[x] Publish a notification to the the notification queue that "order is being fulfilled" ("enotification-events") 
+[x] Test end to end for error case and happy case
+
+*Produce ordershipped event to orderpicked-events topic*
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-console-producer.sh \
+  --topic orderpicked-events \
+   --bootstrap-server localhost:9092
+>{ "namespace": "org.industrial", "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] } 
+>
+
+```
+
+*Check event is received to the topic*
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 %  bin/kafka-console-consumer.sh \                            
+  --topic orderpicked-events \
+  --from-beginning \
+  --bootstrap-server localhost:9092
+{ "namespace": "org.industrial", "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", ""type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] } 
+```
+
+*Confirm notification is produced to the enotification-events topic*
+
+```
+(base) welcome@Traianos-MacBook-Pro shipper-service % ./shipper          
+.
+.
+.
+DEBUG>  { "namespace": "org.industrial","time":113245676757, "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }  <DEBUG
+
+wrote: { "namespace": "org.industrial","time":113245676757, "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, 
+
+{"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }   to topic  enotification-events
+```
+
+
+*Confirm error notification is sent to deadletter queue*
+
+
+```
+(base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-console-producer.sh \
+  --topic orderpicked-events \
+   --bootstrap-server localhost:9092
+>{ "namespace": "org.industrial", "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] } 
+>{ "namespace": "org.industrial","time":113245676757, "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] } 
+>{ "namespace": "org.industrial","time":113245676757, doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }             
+>
+.
+.
+.
+Error with ordershipped format: invalid character '>' looking for beginning of value>{ "namespace": "org.industrial","time":113245676757, "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] } 
+wrote: >{ "namespace": "org.industrial","time":113245676757, "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }   to topic  deadletter-events
+received:  >{ "namespace": "org.industrial","time":113245676757, doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }             
+DEBUG>  >{ "namespace": "org.industrial","time":113245676757, doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }              <DEBUG
+incorrect message format (not readable json)invalid character '>' looking for beginning of value>{ "namespace": "org.industrial","time":113245676757, doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }             
+Error with ordershipped format: invalid character '>' looking for beginning of value>{ "namespace": "org.industrial","time":113245676757, doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }             
+wrote: >{ "namespace": "org.industrial","time":113245676757, doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }               to topic  deadletter-events
+```
+
+
+
+
+
+
+
 
 
 
