@@ -1,0 +1,18 @@
+{
+"namespace": "org.industrial",
+"etype": "record",
+"name": "OrderEmailNotification",
+"fields": [
+	{"name": "order_id",  "type": "long",
+	  "doc":"The Universally unique id that identifies the order"},
+	{"name": "time", "type": "long",
+	  "doc":"Time the order alert request was generated as UTC milliseconds from the epoch"},
+	{"name": "event_id",  "type": "long",
+	"doc":"The Universally unique event id that identifies this event"},
+	{"name": "email_type", "type": "long",
+	   "type":{"type":"enum",
+			"name":"email_notification_type",
+			"symbols":["OrderConfirmed","OrderRecieved","OrderRejected","OrderPicked", "OrderShipped", "OrderDelivered"]},
+	  "doc":"Type of the email notification to be sent"}
+       ]
+}

@@ -215,13 +215,11 @@ Correctly formatted message successfully produced to the notification queue:
 
 
 ```
-
 (base) welcome@Traianos-MacBook-Pro warehouse-service % ./warehouse 
 
 received:  { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
 DEBUG>  { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] } <DEBUG
 wrote: { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }  to topic  enotification-events
-
 ```
 
 *Check event is logged in the notifications topic*
@@ -234,7 +232,6 @@ debug> consuming from topic  orderconfirmed-events
 received:  { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
 
 wrote: { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }  to topic  enotification-events
-
 ```
 
 *Checking the notifications queue:*
@@ -247,7 +244,6 @@ wrote: { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfi
 
 
 { "namespace": "org.industrial", "doctype": "record", "name": "OrderConfirmed", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was confirmed as UTC milliseconds from the epoch"} ] }
-
 ```
 
 *Produce broken json event message and test for error produce to deadletter*
@@ -290,7 +286,7 @@ wrote: { "namespace": org.industrial", "doctype": "record", "name": "OrderPicked
 [x] Create basic Shipper microservice based on template
 [x] Define the shipper event format
 [x] Consume from OrderPickedAndPacked  queue ("orderpicked-events")
-[p] Publish errors to the DeadletterQueue topic ("deadletter-events")
+[x] Publish errors to the DeadletterQueue topic ("deadletter-events")
 [x] Publish a notification to the the notification queue that "order is being fulfilled" ("enotification-events") 
 [x] Test end to end for error case and happy case
 
@@ -302,7 +298,6 @@ wrote: { "namespace": org.industrial", "doctype": "record", "name": "OrderPicked
    --bootstrap-server localhost:9092
 >{ "namespace": "org.industrial", "doctype": "record", "name": "OrderShipped", "fields": [ {"name": "order_id", "type": "long", "doc":"The Universally unique id that identifies the order"}, {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] } 
 >
-
 ```
 
 *Check event is received to the topic*
@@ -329,9 +324,7 @@ wrote: { "namespace": "org.industrial","time":113245676757, "doctype": "record",
 {"name": "event_id", "type": "long", "doc":"The Universally unique event id that identifies this event"}, {"name": "time", "type": "long", "doc":"Time the order was shipped as UTC milliseconds from the epoch"} ] }   to topic  enotification-events
 ```
 
-
 *Confirm error notification is sent to deadletter queue*
-
 
 ```
 (base) welcome@Traianos-MacBook-Pro kafka_2.13-3.0.0 % bin/kafka-console-producer.sh \
