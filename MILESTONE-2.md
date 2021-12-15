@@ -426,8 +426,7 @@ wrote: [123 34 78 97 109 101 34 58 34 110 101 119 79 114 100 101 114 34 44 32 34
 Be Bop Be Bop
 .
 .
-\
-^[[D{"Name":"newOrder", "ID":"78912","Time":"223232113111","Data":"new order", "Eventname":"newOrder"}
+{"Name":"newOrder", "ID":"78912","Time":"223232113111","Data":"new order", "Eventname":"newOrder"}
 
 
 ```
